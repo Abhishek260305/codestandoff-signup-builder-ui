@@ -50,5 +50,5 @@ This application exposes the `Signup` component via Module Federation, which can
 
 ## Repository
 
-https://github.com/Abhishek260305/signup-builder-ui
+https://github.com/Abhishek260305/codestandoff-signup-builder-ui
 
