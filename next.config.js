@@ -5,7 +5,7 @@ module.exports = {
     const { isServer } = options;
     config.plugins.push(
       new NextFederationPlugin({
-        name: 'signup',
+        name: 'signup_builder_ui',
         filename: 'static/chunks/remoteEntry.js',
         exposes: {
           './Signup': './pages/Signup',
