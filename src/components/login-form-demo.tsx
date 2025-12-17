@@ -8,37 +8,25 @@ import {
   IconBrandGoogle,
 } from "@tabler/icons-react";
 
-interface SignupFormData {
-  firstName: string;
-  lastName: string;
+interface LoginFormData {
   email: string;
   password: string;
-  confirmPassword: string;
 }
 
-interface SignupError {
+interface LoginError {
   field?: string;
   message: string;
 }
 
-export default function SignupFormDemo() {
+export default function LoginFormDemo() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<SignupError | null>(null);
-  const [formData, setFormData] = useState<SignupFormData>({
-    firstName: "",
-    lastName: "",
+  const [error, setError] = useState<LoginError | null>(null);
+  const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
-    confirmPassword: "",
   });
 
   const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) {
-      return "First name is required";
-    }
-    if (!formData.lastName.trim()) {
-      return "Last name is required";
-    }
     if (!formData.email.trim()) {
       return "Email is required";
     }
@@ -48,12 +36,6 @@ export default function SignupFormDemo() {
     }
     if (!formData.password) {
       return "Password is required";
-    }
-    if (formData.password.length < 6) {
-      return "Password must be at least 6 characters";
-    }
-    if (formData.password !== formData.confirmPassword) {
-      return "Passwords do not match";
     }
     return null;
   };
@@ -81,8 +63,8 @@ export default function SignupFormDemo() {
         credentials: "include", // Include cookies in request/response
         body: JSON.stringify({
           query: `
-            mutation Signup($email: String!, $password: String!, $firstName: String, $lastName: String) {
-              signup(email: $email, password: $password, firstName: $firstName, lastName: $lastName) {
+            mutation Login($email: String!, $password: String!) {
+              login(email: $email, password: $password) {
                 user {
                   id
                   email
@@ -97,21 +79,31 @@ export default function SignupFormDemo() {
           variables: {
             email: formData.email,
             password: formData.password,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
           },
         }),
       });
 
       const result = await response.json();
 
+      // Handle GraphQL errors (from backend validation)
       if (result.errors) {
-        setError({ message: result.errors[0].message || "Signup failed" });
+        const errorMessage = result.errors[0].message || "Login failed";
+        // Check for specific error messages
+        if (errorMessage.toLowerCase().includes("invalid email") || 
+            errorMessage.toLowerCase().includes("invalid password")) {
+          setError({ 
+            message: "Invalid email or password. Please check your credentials and try again.",
+            field: "credentials"
+          });
+        } else {
+          setError({ message: errorMessage });
+        }
         setIsSubmitting(false);
         return;
       }
 
-      if (result.data?.signup) {
+      // Check if login was successful
+      if (result.data?.login) {
         // Token is automatically stored in HTTP cookie by the backend
         // Clear any old localStorage data first
         localStorage.removeItem('user');
@@ -121,12 +113,12 @@ export default function SignupFormDemo() {
         localStorage.removeItem('auth_expires_at');
         
         // Store user info in localStorage for client-side state
-        localStorage.setItem("user", JSON.stringify(result.data.signup.user));
+        localStorage.setItem("user", JSON.stringify(result.data.login.user));
         
         // Redirect to host-ui dashboard
         window.location.href = "http://localhost:3000";
       } else {
-        setError({ message: "Signup failed. Please try again." });
+        setError({ message: "Login failed. Please try again." });
         setIsSubmitting(false);
       }
     } catch (err: any) {
@@ -137,53 +129,35 @@ export default function SignupFormDemo() {
     }
   };
 
-  const handleInputChange = (field: keyof SignupFormData, value: string) => {
+  const handleInputChange = (field: keyof LoginFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (error) {
       setError(null);
     }
   };
+
   return (
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
       <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">
-        Welcome to CodeStandoff
+        Welcome back to CodeStandoff
       </h2>
-      <p className="mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
-        Create your account to get started with coding challenges and competitions
+      <p className="mt-2 mb-6 max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
+        Sign in to your account to continue
       </p>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-          <p className="text-sm text-red-800 dark:text-red-200">{error.message}</p>
+          <p className="text-sm text-red-800 dark:text-red-200 font-medium">{error.message}</p>
+          {error.field === "credentials" && (
+            <p className="text-xs text-red-600 dark:text-red-300 mt-1">
+              Make sure you're using the email and password you signed up with.
+            </p>
+          )}
         </div>
       )}
 
       <form className="my-8" onSubmit={handleSubmit}>
-        <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
-          <LabelInputContainer>
-            <Label htmlFor="firstname">First name</Label>
-            <Input 
-              id="firstname" 
-              placeholder="Tyler" 
-              type="text" 
-              value={formData.firstName}
-              onChange={(e) => handleInputChange("firstName", e.target.value)}
-              required
-            />
-          </LabelInputContainer>
-          <LabelInputContainer>
-            <Label htmlFor="lastname">Last name</Label>
-            <Input 
-              id="lastname" 
-              placeholder="Durden" 
-              type="text" 
-              value={formData.lastName}
-              onChange={(e) => handleInputChange("lastName", e.target.value)}
-              required
-            />
-          </LabelInputContainer>
-        </div>
         <LabelInputContainer className="mb-4">
           <Label htmlFor="email">Email Address</Label>
           <Input 
@@ -192,10 +166,12 @@ export default function SignupFormDemo() {
             type="email" 
             value={formData.email}
             onChange={(e) => handleInputChange("email", e.target.value)}
+            className={error?.field === "credentials" ? "border-red-300 dark:border-red-700" : ""}
             required
+            autoComplete="email"
           />
         </LabelInputContainer>
-        <LabelInputContainer className="mb-4">
+        <LabelInputContainer className="mb-8">
           <Label htmlFor="password">Password</Label>
           <Input 
             id="password" 
@@ -203,20 +179,9 @@ export default function SignupFormDemo() {
             type="password" 
             value={formData.password}
             onChange={(e) => handleInputChange("password", e.target.value)}
+            className={error?.field === "credentials" ? "border-red-300 dark:border-red-700" : ""}
             required
-            minLength={6}
-          />
-        </LabelInputContainer>
-        <LabelInputContainer className="mb-8">
-          <Label htmlFor="confirmpassword">Confirm Password</Label>
-          <Input
-            id="confirmpassword"
-            placeholder="••••••••"
-            type="password"
-            value={formData.confirmPassword}
-            onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-            required
-            minLength={6}
+            autoComplete="current-password"
           />
         </LabelInputContainer>
 
@@ -225,7 +190,7 @@ export default function SignupFormDemo() {
           type="submit"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Signing up...' : 'Sign up →'}
+          {isSubmitting ? 'Signing in...' : 'Sign in →'}
           <BottomGradient />
         </button>
 
@@ -266,12 +231,12 @@ export default function SignupFormDemo() {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            Already have an account?{" "}
+            Don't have an account?{" "}
             <a
-              href="/login"
+              href="/signup"
               className="font-medium text-neutral-800 dark:text-neutral-200 hover:underline"
             >
-              Sign in
+              Sign up
             </a>
           </p>
         </div>
@@ -302,3 +267,4 @@ const LabelInputContainer = ({
     </div>
   );
 };
+

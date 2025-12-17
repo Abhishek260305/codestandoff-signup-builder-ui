@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import SignupFormDemo from "@/components/signup-form-demo";
+import LoginFormDemo from "@/components/login-form-demo";
 
-export default function Signup() {
+export default function Login() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -40,8 +40,8 @@ export default function Signup() {
           localStorage.removeItem('user_data');
         }
       } catch (error) {
-        // Not authenticated or error - clear localStorage and show signup form
-        console.log("Not authenticated, showing signup form");
+        // Not authenticated or error - clear localStorage and show login form
+        console.log("Not authenticated, showing login form");
         localStorage.removeItem('user');
         localStorage.removeItem('user_data');
       } finally {
@@ -65,7 +65,9 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-black dark:via-black dark:to-black flex items-center justify-center p-4">
-      <SignupFormDemo />
+      <LoginFormDemo />
     </div>
   );
 }
+
+
